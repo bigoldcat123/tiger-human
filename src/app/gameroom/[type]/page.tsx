@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { socket } from "../../../socket";
 import { addRoom, getRooms } from "@/lib/mockDataBase";
 import Image from "next/image";
-import map from '../../../../public/map.jpg'
+// import map from '../../../../public/map.jpg'
 import { createRoot } from "react-dom/client";
 
 const Chess = ({ OnClick }: {
@@ -55,7 +55,7 @@ export default function Home({ params, searchParams }:
   },[])
   return (
     <div className=" w-[80%] relative aspect-square] my-0 mx-auto mt-8 flex flex-row flex-wrap ">
-      <Image className=" absolute z-[-1] w-[80%] top-[10%] left-[10%]" src={map} alt=""></Image>
+      <Image className=" absolute z-[-1] w-[80%] top-[10%] left-[10%]" src={'/map.jpg'} alt=""></Image>
       {s.map((item, index1) => {
         return item.map((item, index2) => {
           return <div id={index1 + '' + index2} key={index1 + '' + index2} className="w-[20%] aspect-square flex justify-center items-center">1</div>
