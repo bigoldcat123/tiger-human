@@ -14,7 +14,6 @@ export default function RoomsPage () {
         })
     },[])
     const hadnleCick = (room:Room) => {
-        console.log('5');
         router.push('/gameroom/' + (room.roomtype !== 'tiger' ? Tag_tiger : Tag_human) + '/' + '?' + 'roomid=' + room.roomid)
     }
     return (
