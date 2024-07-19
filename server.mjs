@@ -1,7 +1,23 @@
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
-import { sql } from "@vercel/postgres";
+// import { sql } from "@vercel/postgres";
+import mysql from 'mysql2/promise';
+
+// Create the connection pool. The pool-specific settings are the defaults
+const pool = mysql.createPool({
+  host: '192.168.0.104',
+  user: 'root',
+  database: 'tiger',
+  waitForConnections: true,
+  connectionLimit: 10,
+  maxIdle: 10, // max idle connections, the default value is the same as `connectionLimit`
+  idleTimeout: 60000, // idle connections timeout, in milliseconds, the default value 60000
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  password: 'root'
+});
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = 3000;
@@ -24,54 +40,27 @@ app.prepare().then(() => {
   });
 
   io.on("connection", async (socket) => {
-
-    socket.on('createRoom', () => {
-      const roomid = socket.id
-      console.log('the room id is' + roomid);
-      rooms.set(roomid, socket)
+    console.log("connection", socket.id);
+    socket.on('createRoom',(roomid,waitingfor) => {
+      console.log('createRoom',roomid,waitingfor);
+      pool.query(`insert into room (roomtype,roomid) values('${waitingfor}','${roomid}')`)
     })
-
-    socket.on('joinRoom', (roomid) => {
-      const peer = rooms.get(roomid)
-      socket.join('_' + roomid)
-      peer.join('_' + socket.id)
-      io.to('_' + roomid).emit('gameStart', 'joiner')
-      io.to('_' + socket.id).emit('gameStart', 'creater')
+    socket.on('joinRoom',(roomid,cb) => {
+      console.log(roomid);
+      io.to(roomid).emit('gameStart',socket.id)
+      cb()
     })
-
-    socket.on('gameover', () => {
-      socket.rooms.forEach(room => {
-        console.log(room + '->' + socket.id);
-        if (room.startsWith('_')) {
-          io.to(room.substring(1)).emit('gamecrash')
-        }
-
-        if (rooms.has(room)) {
-          rooms.delete(room)
-          sql` delete from room where roomid = ${room}`
-        }
-      })
+    socket.on('move',(roomid,from,to) => {
+      io.to(roomid).emit('peermove',from,to)
     })
-    socket.on('disconnect', () => {
-      console.log('disconnect');
-      console.log(socket.rooms);
-      if (socket.rooms.size == 0) {
-        rooms.delete(socket.id)
-        sql` delete from room where roomid = ${socket.id}`
-        return
-      }
-      socket.rooms.forEach(room => {
-        console.log(room + '->' + socket.id);
-        if (room.startsWith('_')) {
-          io.to(room.substring(1)).emit('gamecrash')
-        }
-
-        if (rooms.has(room)) {
-          rooms.delete(room)
-          sql` delete from room where roomid = ${room}`
-        }
-      })
+    socket.on('gameover',(peerid,cb) => {
+      console.log('gameover');
+      io.to(peerid).emit('peergameover')
+      cb()
     })
+    socket.on("disconnect", () => {
+      console.log("disconnect", socket.id);
+    });
   });
 
   httpServer
